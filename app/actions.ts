@@ -23,7 +23,10 @@ export async function unsubscribeUser() {
   return { success: true };
 }
 
-export async function sendNotification(subscription: Subscription, message: string) {
+export async function sendNotification(
+  subscription: Subscription,
+  message: string,
+) {
   if (!subscription) {
     throw new Error("No subscription available");
   }
