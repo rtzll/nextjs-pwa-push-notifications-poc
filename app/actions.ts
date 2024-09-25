@@ -78,7 +78,6 @@ export async function sendNotification(
   if (!subscription) {
     throw new Error("No subscription available");
   }
-  console.log(`Subscription for ${userId}: ${subscription}`);
   if (!isPushSubscription(subscription)) {
     console.log(`Invalid subscription data for user ${userId}`);
     await redis.del(`subscription:${userId}`);
