@@ -2,6 +2,14 @@
 
 import webpush from "web-push";
 import { Subscription } from "./types";
+import { Redis } from "@upstash/redis";
+import { v4 as uuidv4 } from "uuid";
+import { cookies } from "next/headers";
+
+const redis = new Redis({
+  url: process.env.UPSTASH_REDIS_REST_URL,
+  token: process.env.UPSTASH_REDIS_REST_TOKEN,
+});
 
 webpush.setVapidDetails(
   "https://nextjs-pwa-with-push-notification.vercel.app/",
@@ -9,34 +17,76 @@ webpush.setVapidDetails(
   process.env.VAPID_PRIVATE_KEY!,
 );
 
-export async function subscribeUser(subscription: Subscription) {
-  console.log(`Received subscription: ${JSON.stringify(subscription)}`);
-  // In a production environment, you would want to store the subscription in a database
-  // For example: await db.subscriptions.create({ data: sub })
+export async function getUserId() {
+  const cookieStore = cookies();
+  let userId = cookieStore.get("anonymousUserId")?.value;
+
+  if (!userId) {
+    userId = uuidv4();
+    // Set the cookie to expire in 1 year
+    cookieStore.set("anonymousUserId", userId, {
+      maxAge: 60 * 60 * 24 * 365,
+      path: "/",
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "strict",
+    });
+  }
+
+  return userId;
+}
+
+export async function subscribeUser(
+  subscription: Subscription,
+) {
+  const userId = await getUserId();
+  console.log(
+    `Received subscription for user ${userId} : ${
+      JSON.stringify(subscription)
+    }`,
+  );
+  await redis.hset(`subscription:${userId}`, { ...subscription });
+  await redis.sadd("subscribers", userId);
   return { success: true };
 }
 
 export async function unsubscribeUser() {
-  console.log("Unsubscribed from push notifications");
-  // In a production environment, you would want to remove the subscription from the database
-  // For example: await db.subscriptions.delete({ where: { ... } })
+  const userId = await getUserId();
+  console.log(`Unsubscribed user ${userId}from push notifications`);
+  await redis.del(`subscription:${userId}`);
+  await redis.srem("subscribers", userId);
   return { success: true };
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function isPushSubscription(sub: any): sub is Subscription {
+  return sub && typeof sub.endpoint === "string" && sub.keys &&
+    typeof sub.keys.p256dh === "string" && typeof sub.keys.auth === "string";
+}
+
 export async function sendNotification(
-  subscription: Subscription,
+  userId: string,
+  title: string,
   message: string,
 ) {
+  const subscription = await redis.hgetall(`subscription:${userId}`);
   if (!subscription) {
     throw new Error("No subscription available");
   }
+  console.log(`Subscription for ${userId}: ${subscription}`);
+  if (!isPushSubscription(subscription)) {
+    console.log(`Invalid subscription data for user ${userId}`);
+    await redis.del(`subscription:${userId}`);
+    await redis.srem("subscribers", userId);
+    throw new Error("Invalid subscription data");
+  }
 
-  console.log(`Sending notification to ${JSON.stringify(subscription)}`);
+  console.log(`Sending ${message} to ${userId}`);
   try {
     await webpush.sendNotification(
       subscription,
       JSON.stringify({
-        title: "Test Notification",
+        title,
         body: message,
         icon: "/apple-touch-icon.png",
       }),
