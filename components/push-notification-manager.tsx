@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/card";
 import { BellIcon } from "lucide-react";
 import {
-  sendNotification,
+  sendManualNotification,
   subscribeUser,
   unsubscribeUser,
 } from "../app/actions";
@@ -97,7 +97,7 @@ export default function PushNotificationManager() {
 
   async function sendTestNotification() {
     if (subscription) {
-      await sendNotification(toSubscription(subscription), message);
+      await sendManualNotification(message);
       setMessage("");
     } else {
       console.error("No subscription available");

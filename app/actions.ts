@@ -64,6 +64,11 @@ function isPushSubscription(sub: any): sub is Subscription {
     typeof sub.keys.p256dh === "string" && typeof sub.keys.auth === "string";
 }
 
+export async function sendManualNotification(message: string) {
+  const userId = await getUserId();
+  return await sendNotification(userId, "Manual Notification", message);
+}
+
 export async function sendNotification(
   userId: string,
   title: string,
