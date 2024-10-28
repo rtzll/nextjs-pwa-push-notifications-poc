@@ -18,7 +18,7 @@ webpush.setVapidDetails(
 );
 
 export async function getUserId() {
-  const cookieStore = cookies();
+  const cookieStore = await cookies();
   let userId = cookieStore.get("anonymousUserId")?.value;
 
   if (!userId) {
