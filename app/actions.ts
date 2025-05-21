@@ -93,6 +93,7 @@ export async function sendNotification(
         title,
         body: message,
         icon: "/apple-touch-icon.png",
+        url: process.env.NEXT_PUBLIC_NOTIFICATION_URL || "https://example.com",
       }),
     );
     return { success: true };
