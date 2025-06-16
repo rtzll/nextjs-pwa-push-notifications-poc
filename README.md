@@ -1,6 +1,7 @@
-# Next.js PWA with Push Notifications
+# Next.js PWA Push Notifications POC
 
-This project is a proof of concept showing how to send web push notifications from a Next.js application.
+> [!IMPORTANT]
+> This project is a **proof of concept** showing how to send web push notifications from a Next.js application using the Web Push API and Upstash Redis.
 
 ## Setup
 
@@ -24,6 +25,7 @@ The required environment variables are:
 - `UPSTASH_REDIS_REST_URL`
 - `UPSTASH_REDIS_REST_TOKEN`
 - `NEXT_PUBLIC_NOTIFICATION_URL` – the URL that should open when a notification is clicked.
+- `VAPID_CONTACT_URL` – the public origin (used for VAPID contact header).
 
 ## Development
 
@@ -39,3 +41,4 @@ Open <http://localhost:3000> in your browser to test notifications.
 
 Subscriptions are stored in Upstash Redis. Use the "Send Push" button in the UI to trigger a manual notification. When the notification is clicked, the browser will open `NEXT_PUBLIC_NOTIFICATION_URL`.
 
+Note: The notification will only be sent if the user has granted permission to receive notifications.

@@ -11,8 +11,12 @@ const redis = new Redis({
   token: process.env.UPSTASH_REDIS_REST_TOKEN,
 });
 
+const vapidContactUrl = process.env.VAPID_CONTACT_URL;
+if (!vapidContactUrl) {
+  throw new Error("Missing VAPID_CONTACT_URL environment variable");
+}
 webpush.setVapidDetails(
-  "https://nextjs-pwa-with-push-notification.vercel.app/",
+  vapidContactUrl,
   process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!,
   process.env.VAPID_PRIVATE_KEY!,
 );
