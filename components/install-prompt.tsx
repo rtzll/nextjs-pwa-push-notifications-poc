@@ -1,28 +1,53 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DownloadIcon } from "lucide-react";
 
+const subscribeToBrowserSnapshot = () => () => {};
+const getServerSnapshot = () => false;
+
+function getIsIOSSnapshot() {
+  return (
+    /iPad|iPhone|iPod/.test(navigator.userAgent) &&
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    !(window as any).MSStream
+  );
+}
+
+function getIsStandaloneSnapshot() {
+  return window.matchMedia("(display-mode: standalone)").matches;
+}
+
 export default function InstallPrompt() {
-  const [isIOS, setIsIOS] = useState(false);
-  const [isStandalone, setIsStandalone] = useState(false);
+  const isIOS = useSyncExternalStore(
+    subscribeToBrowserSnapshot,
+    getIsIOSSnapshot,
+    getServerSnapshot,
+  );
+  const isStandalone = useSyncExternalStore(
+    subscribeToBrowserSnapshot,
+    getIsStandaloneSnapshot,
+    getServerSnapshot,
+  );
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
 
   useEffect(() => {
-    setIsIOS(
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream,
-    );
-
-    setIsStandalone(window.matchMedia("(display-mode: standalone)").matches);
-
-    window.addEventListener("beforeinstallprompt", (e) => {
+    const handleBeforeInstallPrompt = (e: Event) => {
       e.preventDefault();
       setDeferredPrompt(e);
-    });
+    };
+
+    window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
+
+    return () => {
+      window.removeEventListener(
+        "beforeinstallprompt",
+        handleBeforeInstallPrompt,
+      );
+    };
   }, []);
 
   if (isStandalone) {

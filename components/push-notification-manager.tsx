@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -43,28 +43,38 @@ function arrayBufferToBase64(buffer: ArrayBuffer) {
   return window.btoa(binary);
 }
 
+const subscribeToBrowserSnapshot = () => () => {};
+const getServerSnapshot = () => false;
+
+function getPushSupportSnapshot() {
+  return "serviceWorker" in navigator && "PushManager" in window;
+}
+
 export default function PushNotificationManager() {
-  const [isSupported, setIsSupported] = useState(false);
+  const isSupported = useSyncExternalStore(
+    subscribeToBrowserSnapshot,
+    getPushSupportSnapshot,
+    getServerSnapshot,
+  );
   const [subscription, setSubscription] = useState<PushSubscription | null>(
     null,
   );
   const [message, setMessage] = useState("");
 
-  useEffect(() => {
-    if ("serviceWorker" in navigator && "PushManager" in window) {
-      setIsSupported(true);
-      registerServiceWorker();
-    }
-  }, []);
-
-  async function registerServiceWorker() {
+  const registerServiceWorker = useCallback(async () => {
     const registration = await navigator.serviceWorker.register("/sw.js", {
       scope: "/",
       updateViaCache: "none",
     });
     const sub = await registration.pushManager.getSubscription();
     setSubscription(sub);
-  }
+  }, []);
+
+  useEffect(() => {
+    if (isSupported) {
+      void Promise.resolve().then(registerServiceWorker);
+    }
+  }, [isSupported, registerServiceWorker]);
 
   async function subscribeToPush() {
     const registration = await navigator.serviceWorker.ready;
